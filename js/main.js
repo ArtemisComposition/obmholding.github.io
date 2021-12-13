@@ -1,511 +1,333 @@
 /* ===================================================================
- *  Khronos 2.0.0 - Main JS
- *
+ * Flare 1.0.0 - Main JS
  *
  * ------------------------------------------------------------------- */
 
-(function(html) {
+(function($) {
 
-    'use strict';
-
+    "use strict";
+    
     const cfg = {
-
-        // Countdown Timer Final Date
-        finalDate : 'March 20, 2024 00:00:00',
-        // MailChimp URL
-        mailChimpURL : 'https://facebook.us1.list-manage.com/subscribe/post?u=1abf75f6981256963a47d197a&amp;id=37c6d8f4d6' 
-
-    };
+                scrollDuration : 800, // smoothscroll duration
+                mailChimpURL   : ''   // mailchimp url
+                };
+    const $WIN = $(window);
 
 
-   /* Preloader
+    // Add the User Agent to the <html>
+    // will be used for IE10/IE11 detection (Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Trident/6.0; rv:11.0))
+    // const doc = document.documentElement;
+    // doc.setAttribute('data-useragent', navigator.userAgent);
+
+
+   /* preloader
     * -------------------------------------------------- */
     const ssPreloader = function() {
 
-        const body = document.querySelector('body');
-        const preloader = document.querySelector('#preloader');
-        const info = document.querySelector('.s-info');
+        $("html").addClass('ss-preload');
 
-        if (!(preloader && info)) return;
+        $WIN.on('load', function() {
 
-        html.classList.add('ss-preload');
+            // force page scroll position to top at page refresh
+            $('html, body').animate({ scrollTop: 0 }, 'normal');
 
-        window.addEventListener('load', function() {
-
-            html.classList.remove('ss-preload');
-            html.classList.add('ss-loaded');
-
-            // page scroll position to top
-            preloader.addEventListener('transitionstart', function gotoTop(e) {
-                if (e.target.matches('#preloader')) {
-                    window.scrollTo(0, 0);
-                    preloader.removeEventListener(e.type, gotoTop);
-                }
-            });
-
-            preloader.addEventListener('transitionend', function afterTransition(e) {
-                if (e.target.matches('#preloader'))  {
-                    body.classList.add('ss-show');
-                    e.target.style.display = 'none';
-                    preloader.removeEventListener(e.type, afterTransition);
-                }
-            });
-
-        });
-
-        window.addEventListener('beforeunload' , function() {
-            body.classList.remove('ss-show');
-        });
-    };
-
-
-   /* Countdown Timer
-    * ------------------------------------------------------ */
-    const ssCountdown = function () {
-
-        const finalDate = new Date(cfg.finalDate).getTime();
-        const daysSpan = document.querySelector('.counter .ss-days');
-        const hoursSpan = document.querySelector('.counter .ss-hours');
-        const minutesSpan = document.querySelector('.counter .ss-minutes');
-        const secondsSpan = document.querySelector('.counter .ss-seconds');
-        let timeInterval;
-
-        if (!(daysSpan && hoursSpan && minutesSpan && secondsSpan)) return;
-
-        function timer() {
-
-            const now = new Date().getTime();
-            let diff = finalDate - now;
-
-            if (diff <= 0) {
-                if (timeInterval) { 
-                    clearInterval(timeInterval);
-                }
-                return;
-            }
-
-            let days = Math.floor( diff/(1000*60*60*24) );
-            let hours = Math.floor( (diff/(1000*60*60)) % 24 );
-            let minutes = Math.floor( (diff/1000/60) % 60 );
-            let seconds = Math.floor( (diff/1000) % 60 );
-
-            if (days <= 99) {
-                if (days <= 9) {
-                    days = '00' + days;
-                } else { 
-                    days = '0' + days;
-                }
-            }
-
-            hours <= 9 ? hours = '0' + hours : hours;
-            minutes <= 9 ? minutes = '0' + minutes : minutes;
-            seconds <= 9 ? seconds = '0' + seconds : seconds;
-
-            daysSpan.textContent = days;
-            hoursSpan.textContent = hours;
-            minutesSpan.textContent = minutes;
-            secondsSpan.textContent = seconds;
-
-        }
-
-        timer();
-        timeInterval = setInterval(timer, 1000);
-    };
-
-
-   /* Swiper
-    * ------------------------------------------------------ */ 
-    const ssSwiper = function() {
-
-        const mySwiper = new Swiper('.swiper-container', {
-
-            slidesPerView: 1,
-            effect: 'fade',
-            speed: 2000,
-            autoplay: {
-                delay: 5000,
-            }
+            // will first fade out the loading animation 
+            $("#loader").fadeOut("slow", function() {
+                // will fade out the whole DIV that covers the website.
+                $("#preloader").delay(300).fadeOut("slow");
+            }); 
+            
+            // for hero content animations 
+            $("html").removeClass('ss-preload');
+            $("html").addClass('ss-loaded');
 
         });
     };
 
 
-   /* MailChimp Form
+
+   /* pretty print
+    * -------------------------------------------------- */
+    const ssPrettyPrint = function() {
+        $('pre').addClass('prettyprint');
+        $( document ).ready(function() {
+            prettyPrint();
+        });
+    };
+
+
+
+   /* move header
+    * -------------------------------------------------- */
+    const ssMoveHeader = function () {
+
+        const $hero = $('.s-hero'),
+              $hdr = $('.s-header'),
+              triggerHeight = $hero.outerHeight() - 170;
+
+
+        $WIN.on('scroll', function () {
+
+            let loc = $WIN.scrollTop();
+
+            if (loc > triggerHeight) {
+                $hdr.addClass('sticky');
+            } else {
+                $hdr.removeClass('sticky');
+            }
+
+            if (loc > triggerHeight + 20) {
+                $hdr.addClass('offset');
+            } else {
+                $hdr.removeClass('offset');
+            }
+
+            if (loc > triggerHeight + 150) {
+                $hdr.addClass('scrolling');
+            } else {
+                $hdr.removeClass('scrolling');
+            }
+
+        });
+
+    };
+
+
+
+   /* mobile menu
     * ---------------------------------------------------- */ 
-    const ssMailChimpForm = function() {
+    const ssMobileMenu = function() {
 
-        const mcForm = document.querySelector('#mc-form');
+        const $toggleButton = $('.s-header__menu-toggle');
+        const $headerContent = $('.s-header__content');
+        const $siteBody = $("body");
 
-        if (!mcForm) return;
-
-        // Add novalidate attribute
-        mcForm.setAttribute('novalidate', true);
-
-        // Field validation
-        function hasError(field) {
-
-            // Don't validate submits, buttons, file and reset inputs, and disabled fields
-            if (field.disabled || field.type === 'file' || field.type === 'reset' || field.type === 'submit' || field.type === 'button') return;
-
-            // Get validity
-            let validity = field.validity;
-
-            // If valid, return null
-            if (validity.valid) return;
-
-            // If field is required and empty
-            if (validity.valueMissing) return 'Please enter an email address.';
-
-            // If not the right type
-            if (validity.typeMismatch) {
-                if (field.type === 'email') return 'Please enter a valid email address.';
-            }
-
-            // If pattern doesn't match
-            if (validity.patternMismatch) {
-
-                // If pattern info is included, return custom error
-                if (field.hasAttribute('title')) return field.getAttribute('title');
-
-                // Otherwise, generic error
-                return 'Please match the requested format.';
-            }
-
-            // If all else fails, return a generic catchall error
-            return 'The value you entered for this field is invalid.';
-
-        };
-
-        // Show error message
-        function showError(field, error) {
-
-            // Get field id or name
-            let id = field.id || field.name;
-            if (!id) return;
-
-            let errorMessage = field.form.querySelector('.mc-status');
-
-            // Update error message
-            errorMessage.classList.remove('success-message');
-            errorMessage.classList.add('error-message');
-            errorMessage.innerHTML = error;
-
-        };
-
-        // Display form status (callback function for JSONP)
-        window.displayMailChimpStatus = function (data) {
-
-            // Make sure the data is in the right format and that there's a status container
-            if (!data.result || !data.msg || !mcStatus ) return;
-
-            // Update our status message
-            mcStatus.innerHTML = data.msg;
-
-            // If error, add error class
-            if (data.result === 'error') {
-                mcStatus.classList.remove('success-message');
-                mcStatus.classList.add('error-message');
-                return;
-            }
-
-            // Otherwise, add success class
-            mcStatus.classList.remove('error-message');
-            mcStatus.classList.add('success-message');
-        };
-
-        // Submit the form 
-        function submitMailChimpForm(form) {
-
-            let url = cfg.mailChimpURL;
-            let emailField = form.querySelector('#mce-EMAIL');
-            let serialize = '&' + encodeURIComponent(emailField.name) + '=' + encodeURIComponent(emailField.value);
-
-            if (url == '') return;
-
-            url = url.replace('/post?u=', '/post-json?u=');
-            url += serialize + '&c=displayMailChimpStatus';
-
-            // Create script with url and callback (if specified)
-            var ref = window.document.getElementsByTagName( 'script' )[ 0 ];
-            var script = window.document.createElement( 'script' );
-            script.src = url;
-
-            // Create global variable for the status container
-            window.mcStatus = form.querySelector('.mc-status');
-            window.mcStatus.classList.remove('error-message', 'success-message')
-            window.mcStatus.innerText = 'Submitting...';
-
-            // Insert script tag into the DOM
-            ref.parentNode.insertBefore( script, ref );
-
-            // After the script is loaded (and executed), remove it
-            script.onload = function () {
-                this.remove();
-            };
-
-        };
-
-        // Check email field on submit
-        mcForm.addEventListener('submit', function (event) {
-
+        $toggleButton.on('click', function(event){
             event.preventDefault();
+            $toggleButton.toggleClass('is-clicked');
+            $siteBody.toggleClass('menu-is-open');
+        });
 
-            let emailField = event.target.querySelector('#mce-EMAIL');
-            let error = hasError(emailField);
+        $headerContent.find('.s-header__nav a, .btn').on("click", function() {
 
-            if (error) {
-                showError(emailField, error);
-                emailField.focus();
-                return;
+            // at 900px and below
+            if (window.matchMedia('(max-width: 900px)').matches) {
+                $toggleButton.toggleClass('is-clicked');
+                $siteBody.toggleClass('menu-is-open');
             }
+        });
 
-            submitMailChimpForm(this);
+        $WIN.on('resize', function() {
 
-        }, false);
+            // above 900px
+            if (window.matchMedia('(min-width: 901px)').matches) {
+                if ($siteBody.hasClass("menu-is-open")) $siteBody.removeClass("menu-is-open");
+                if ($toggleButton.hasClass("is-clicked")) $toggleButton.removeClass("is-clicked");
+            }
+        });
+
     };
 
 
-   /* Tabs
-    * ---------------------------------------------------- */ 
-    const sstabs = function(nextTab = false) {
 
-        const tabList = document.querySelector('.tab-nav__list');
-        const tabPanels = document.querySelectorAll('.tab-content__item');
-        const tabItems = document.querySelectorAll('.tab-nav__list li');
-        const tabLinks = [];
+   /* photoswipe
+    * ----------------------------------------------------- */
+    const ssPhotoswipe = function() {
+        const items = [],
+              $pswp = $('.pswp')[0],
+              $folioItems = $('.folio-item');
 
-        if (!(tabList && tabPanels)) return;
+        // get items
+        $folioItems.each( function(i) {
 
-        const tabClickEvent = function(tabLink, tabLinks, tabPanels, linkIndex, e) {
-    
-            // Reset all the tablinks
-            tabLinks.forEach(function(link) {
-                link.setAttribute('tabindex', '-1');
-                link.setAttribute('aria-selected', 'false');
-                link.parentNode.removeAttribute('data-tab-active');
-                link.removeAttribute('data-tab-active');
-            });
-    
-            // set the active link attributes
-            tabLink.setAttribute('tabindex', '0');
-            tabLink.setAttribute('aria-selected', 'true');
-            tabLink.parentNode.setAttribute('data-tab-active', '');
-            tabLink.setAttribute('data-tab-active', '');
-    
-            // Change tab panel visibility
-            tabPanels.forEach(function(panel, index) {
-                if (index != linkIndex) {
-                    panel.setAttribute('aria-hidden', 'true');
-                    panel.removeAttribute('data-tab-active');
-                } else {
-                    panel.setAttribute('aria-hidden', 'false');
-                    panel.setAttribute('data-tab-active', '');
-                }
-            });
-
-            window.dispatchEvent(new Event("resize"));
-
-        };
-    
-        const keyboardEvent = function(tabLink, tabLinks, tabPanels, tabItems, index, e) {
-
-            let keyCode = e.keyCode;
-            let currentTab = tabLinks[index];
-            let previousTab = tabLinks[index - 1];
-            let nextTab = tabLinks[index + 1];
-            let firstTab = tabLinks[0];
-            let lastTab = tabLinks[tabLinks.length - 1];
-    
-            // ArrowRight and ArrowLeft are the values when event.key is supported
-            switch (keyCode) {
-                case 'ArrowLeft':
-                case 37:
-                    e.preventDefault();
-    
-                    if (!previousTab) {
-                        lastTab.focus();
-                    } else {
-                        previousTab.focus();
-                    }
-                    break;
-    
-                case 'ArrowRight':
-                case 39:
-                    e.preventDefault();
-    
-                    if (!nextTab) {
-                        firstTab.focus();
-                    } else {
-                        nextTab.focus();
-                    }
-                    break;
+            let $folio = $(this),
+                $thumbLink =  $folio.find('.folio-item__thumb-link'),
+                $title = $folio.find('.folio-item__title'),
+                $caption = $folio.find('.folio-item__caption'),
+                $titleText = '<h4>' + $.trim($title.html()) + '</h4>',
+                $captionText = $.trim($caption.html()),
+                $href = $thumbLink.attr('href'),
+                $size = $thumbLink.data('size').split('x'),
+                $width  = $size[0],
+                $height = $size[1];
+        
+            let item = {
+                src  : $href,
+                w    : $width,
+                h    : $height
             }
-    
-        };
 
-
-        // Add accessibility roles and labels
-        tabList.setAttribute('role','tablist');
-        tabItems.forEach(function(item, index) {
-    
-            let link = item.querySelector('a');
-    
-            // collect tab links
-            tabLinks.push(link);
-            item.setAttribute('role', 'presentation');
-    
-            if (index == 0) {
-                item.setAttribute('data-tab-active', '');
+            if ($caption.length > 0) {
+                item.title = $.trim($titleText + $captionText);
             }
-    
+
+            items.push(item);
         });
-    
-        // Set up tab links
-        tabLinks.forEach(function(link, i) {
-            let anchor = link.getAttribute('href').split('#')[1];
-            let attributes = {
-                'id': 'tab-link-' + i,
-                'role': 'tab',
-                'tabIndex': '-1',
-                'aria-selected': 'false',
-                'aria-controls': anchor
-            };
-    
-            // if it's the first element update the attributes
-            if (i == 0) {
-                attributes['aria-selected'] = 'true';
-                attributes.tabIndex = '0';
-                link.setAttribute('data-tab-active', '');
-            };
-    
-            // Add the various accessibility roles and labels to the links
-            for (var key in attributes) {
-                link.setAttribute(key, attributes[key]);
-            }
-                  
-            // Click Event Listener
-            link.addEventListener('click', function(e) {
+
+        // bind click event
+        $folioItems.each(function(i) {
+
+            $(this).find('.folio-item__thumb-link').on('click', function(e) {
                 e.preventDefault();
-            });
-          
-            // Click Event Listener
-            link.addEventListener('focus', function(e) {
-                tabClickEvent(this, tabLinks, tabPanels, i, e);
-            });
-    
-            // Keyboard event listener
-            link.addEventListener('keydown', function(e) {
-                keyboardEvent(link, tabLinks, tabPanels, tabItems, i, e);
-            });
-        });
-    
-        // Set up tab panels
-        tabPanels.forEach(function(panel, i) {
-    
-            let attributes = {
-                'role': 'tabpanel',
-                'aria-hidden': 'true',
-                'aria-labelledby': 'tab-link-' + i
-            };
-          
-            if (nextTab) {
-                let nextTabLink = document.createElement('a');
-                let nextTabLinkIndex = (i < tabPanels.length - 1) ? i + 1 : 0;
+                let options = {
+                    index: i,
+                    showHideOpacity: true
+                }
 
-                 // set up next tab link
-                nextTabLink.setAttribute('href', '#tab-link-' + nextTabLinkIndex);
-                nextTabLink.textContent = 'Next Tab';
-                panel.appendChild(nextTabLink);
-            }
-               
-            if (i == 0) {
-                attributes['aria-hidden'] = 'false';
-                panel.setAttribute('data-tab-active', '');
-            }
-    
-            for (let key in attributes) {
-                panel.setAttribute(key, attributes[key]);
-            }
+                // initialize PhotoSwipe
+                let lightBox = new PhotoSwipe($pswp, PhotoSwipeUI_Default, items, options);
+                lightBox.init();
+            });
+
         });
     };
 
 
-   /* Alert Boxes
+
+   /* slick slider
+    * ------------------------------------------------------ */
+    const ssSlickSlider = function() {
+
+        $('.clients').slick({
+            arrows: false,
+            dots: true,
+            infinite: true,
+            slidesToShow: 5,
+            slidesToScroll: 1,
+            pauseOnFocus: false,
+            autoplaySpeed: 1000,
+            responsive: [
+                {
+                    breakpoint: 1000,
+                    settings: {
+                        slidesToShow: 4
+                    }
+                },
+                {
+                    breakpoint: 800,
+                    settings: {
+                        slidesToShow: 3,
+                        slidesToScroll: 2
+                    }
+                },
+                {
+                    breakpoint: 500,
+                    settings: {
+                        slidesToShow: 2,
+                        slidesToScroll: 2
+                    }
+                }
+
+            ]
+        });
+
+        $('.testimonial-slider').slick({
+            arrows: true,
+            dots: false,
+            infinite: true,
+            slidesToShow: 1,
+            slidesToScroll: 1,
+            pauseOnFocus: false,
+            autoplaySpeed: 1500,
+            responsive: [
+                {
+                    breakpoint: 600,
+                    settings: {
+                        arrows: false,
+                        dots: true
+                    }
+                }
+            ]
+        });
+
+    };
+
+
+   /* animate on scroll
+    * ------------------------------------------------------ */
+    const ssAOS = function() {
+        
+        AOS.init( {
+            offset: 100,
+            duration: 600,
+            easing: 'ease-in-out',
+            delay: 300,
+            once: true,
+            disable: 'mobile'
+        });
+
+    };
+
+
+
+   /* alert boxes
     * ------------------------------------------------------ */
     const ssAlertBoxes = function() {
 
-        const boxes = document.querySelectorAll('.alert-box');
-  
-        boxes.forEach(function(box) {
-            box.addEventListener('click', function(event) {
-                if (event.target.matches('.alert-box__close')) {
-                    event.stopPropagation();
-                    event.target.parentElement.classList.add('hideit');
+        $('.alert-box').on('click', '.alert-box__close', function() {
+            $(this).parent().fadeOut(500);
+        }); 
 
-                    setTimeout(function(){
-                        box.style.display = 'none';
-                    }, 500)
-                }
+    };
+
+    
+   /* smooth scrolling
+    * ------------------------------------------------------ */
+    const ssSmoothScroll = function() {
+        
+        $('.smoothscroll').on('click', function (e) {
+            const target = this.hash;
+            const $target = $(target);
+            
+            e.preventDefault();
+            e.stopPropagation();
+
+            $('html, body').stop().animate({
+                'scrollTop': $target.offset().top
+            }, cfg.scrollDuration, 'swing').promise().done(function () {
+                window.location.hash = target;
             });
-        })
+        });
+
     };
 
 
-   /* Smooth Scrolling
+   /* back to top
     * ------------------------------------------------------ */
-    const ssMoveTo = function(){
-
-        const easeFunctions = {
-            easeInQuad: function (t, b, c, d) {
-                t /= d;
-                return c * t * t + b;
-            },
-            easeOutQuad: function (t, b, c, d) {
-                t /= d;
-                return -c * t* (t - 2) + b;
-            },
-            easeInOutQuad: function (t, b, c, d) {
-                t /= d/2;
-                if (t < 1) return c/2*t*t + b;
-                t--;
-                return -c/2 * (t*(t-2) - 1) + b;
-            },
-            easeInOutCubic: function (t, b, c, d) {
-                t /= d/2;
-                if (t < 1) return c/2*t*t*t + b;
-                t -= 2;
-                return c/2*(t*t*t + 2) + b;
-            }
-        }
-
-        const triggers = document.querySelectorAll('.smoothscroll');
+    const ssBackToTop = function() {
         
-        const moveTo = new MoveTo({
-            tolerance: 0,
-            duration: 1200,
-            easing: 'easeInOutCubic',
-            container: window
-        }, easeFunctions);
+        const pxShow = 800;
+        const $goTopButton = $(".ss-go-top")
 
-        triggers.forEach(function(trigger) {
-            moveTo.registerTrigger(trigger);
+        // Show or hide the button
+        if ($(window).scrollTop() >= pxShow) $goTopButton.addClass('link-is-visible');
+
+        $(window).on('scroll', function() {
+            if ($(window).scrollTop() >= pxShow) {
+                if(!$goTopButton.hasClass('link-is-visible')) $goTopButton.addClass('link-is-visible')
+            } else {
+                $goTopButton.removeClass('link-is-visible')
+            }
         });
+    };
 
-    }; 
 
 
-   /* Initialize
+   /* initialize
     * ------------------------------------------------------ */
     (function ssInit() {
 
         ssPreloader();
-        ssCountdown();
-        ssSwiper();
-        ssMailChimpForm();
-        sstabs();
+        ssPrettyPrint();
+        ssMoveHeader();
+        ssMobileMenu();
+        ssPhotoswipe();
+        ssSlickSlider();
+        ssAOS();
         ssAlertBoxes();
-        ssMoveTo();
+        ssSmoothScroll();
+        ssBackToTop();
 
     })();
 
-})(document.documentElement);
+})(jQuery);
